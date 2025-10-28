@@ -1,0 +1,35 @@
+# ========== Unity 常用 .gitignore ==========
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+
+# VS/VSCode
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+
+# OS 缓存
+.DS_Store
+Thumbs.db
+
+# Unity 自动生成
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+
+# Crash Reports
+sysinfo.txt
+
+# TextMesh Pro 资源导入缓存
+TextMesh Pro/Fonts.asset.meta
