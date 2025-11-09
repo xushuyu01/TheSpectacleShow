@@ -1,27 +1,39 @@
 using UnityEngine;
 using UnityEngine.XR;
 
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class CameraMove : MonoBehaviour
 {
     [Header("移动与旋转参数")]
-    public float moveSpeed = 2f;
+    public float moveSpeed = 5f;
+    public float jumpForce = 5f;
     public float mouseSensitivity = 2f;
-    public float vrTurnSpeed = 60f; // VR 手柄旋转速度（度/秒）
+    public float vrTurnSpeed = 60f;
+    public float groundCheckDistance = 0.3f;
 
     [Header("相机引用")]
-    public Transform cameraTransform; // VR时为头显相机，PC时为主摄像机
+    public Transform cameraTransform;
 
     private bool isVR;
     private float rotationX;
     private float rotationY;
+    private Rigidbody rb;
+    [SerializeField]
+    private bool isGrounded;
 
     void Start()
     {
-        // 检查当前是否启用了VR设备
         isVR = XRSettings.isDeviceActive;
 
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
+
+        rb = GetComponent<Rigidbody>();
+        rb.freezeRotation = true;
+        rb.useGravity = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        rb.constraints = RigidbodyConstraints.FreezeRotation; // 禁止翻滚
 
         if (!isVR)
         {
@@ -32,12 +44,17 @@ public class CameraMove : MonoBehaviour
 
     void Update()
     {
-        Move();
+        GroundCheck();
 
         if (isVR)
             RotateByVRController();
         else
             RotateByMouse();
+
+        Move();
+
+        if (Input.GetButtonDown("Jump")/* && isGrounded*/)
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
     }
 
     void Move()
@@ -45,14 +62,26 @@ public class CameraMove : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
-        // 用相机方向决定移动方向（保持水平）
         Vector3 forward = cameraTransform.forward;
         Vector3 right = cameraTransform.right;
         forward.y = 0;
         right.y = 0;
 
-        Vector3 move = (forward.normalized * v + right.normalized * h) * moveSpeed * Time.deltaTime;
-        transform.position += move;
+        Vector3 moveDir = (forward.normalized * v + right.normalized * h).normalized;
+
+        // 保留原本的竖直速度
+        Vector3 currentVel = rb.velocity;
+        Vector3 targetVel = moveDir * moveSpeed;
+        Vector3 newVel = new Vector3(targetVel.x, currentVel.y, targetVel.z);
+
+        rb.velocity = newVel;
+    }
+
+    void GroundCheck()
+    {
+        // 从角色底部检测是否着地
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+        isGrounded = Physics.Raycast(origin, Vector3.down, groundCheckDistance + 0.1f);
     }
 
     void RotateByMouse()
@@ -68,7 +97,6 @@ public class CameraMove : MonoBehaviour
 
     void RotateByVRController()
     {
-        // 针对通用OpenXR右手手柄的旋转输入（X轴）
         float turnInput = Input.GetAxis("Oculus_CrossPlatform_SecondaryThumbstickHorizontal");
         if (Mathf.Abs(turnInput) > 0.1f)
             transform.Rotate(Vector3.up, turnInput * vrTurnSpeed * Time.deltaTime);
