@@ -47,20 +47,7 @@ public class ShottingLight : MonoBehaviour
 
         missionCoroutine = StartCoroutine(ExecuteMissions());
     }
-
-    public void Deactive()
-    {
-        IsActive = false;
-
-        if (missionCoroutine != null)
-        {
-            StopCoroutine(missionCoroutine);
-            missionCoroutine = null;
-        } 
-
-        // 恢复上一个击中物体的材质
-        ResetLastHitObject();
-    }
+     
 
     private IEnumerator ExecuteMissions()
     {
@@ -93,6 +80,7 @@ public class ShottingLight : MonoBehaviour
  
     }
 
+    private float timer = 0;
     private void Update()
     {
         if (!IsActive)
@@ -100,6 +88,16 @@ public class ShottingLight : MonoBehaviour
             return;
         }
         UpdateShotting();
+
+        if (queue.Count > 0)
+        {
+            if (timer > 1f)
+            {
+                timer= 0;
+                ExecuteRst(queue.Dequeue());    
+            }
+            timer += Time.deltaTime;
+        }
     }
 
     private void UpdateShotting()
@@ -125,18 +123,18 @@ public class ShottingLight : MonoBehaviour
             {
                 HandleBoxHit(hit.collider.gameObject);
             }
-            else
-            {
-                // 如果击中的不是Box，恢复上一个物体的材质
-                ResetLastHitObject();
-            }
+            //else
+            //{
+            //    // 如果击中的不是Box，恢复上一个物体的材质
+            //    ResetLastHitObject();
+            //}
         }
-        else
-        {
-            // 没有击中任何物体，显示长距离光线并恢复上一个物体材质
+        //else
+        //{
+        //    // 没有击中任何物体，显示长距离光线并恢复上一个物体材质
           
-            ResetLastHitObject();
-        }
+        //    ResetLastHitObject();
+        //}
     }
 
     private void HandleBoxHit(GameObject hitObject)
@@ -166,9 +164,18 @@ public class ShottingLight : MonoBehaviour
         }
     }
 
+    Queue<GameObject> queue = new Queue<GameObject>();
     private void ResetMaterial(GameObject obj)
     {
         if (obj == null) return;
+
+        queue.Enqueue(obj); 
+    }
+
+    private void ExecuteRst(GameObject obj)
+    {
+        if (obj == null) return;
+         
 
         Renderer renderer = obj.GetComponent<Renderer>();
         if (renderer != null && originMat != null)
@@ -185,7 +192,7 @@ public class ShottingLight : MonoBehaviour
             lastHitObject = null;
         }
     }
-
+      
     // 添加调试绘制
     private void OnDrawGizmos()
     {
